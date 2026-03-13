@@ -1,0 +1,5 @@
+.DS_Store
+image-processing/data/input-images/*
+image-processing/data/output-images/*
+image-processing/data/models/*
+imgproc
