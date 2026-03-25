@@ -562,16 +562,61 @@ func CompositeImageOnCanvas(img gocv.Mat, contour image.Rectangle, borderRatio f
 	roi := canvas.Region(image.Rect(offsetX, offsetY, offsetX+width, offsetY+height))
 
 	if img.Channels() == 4 {
-		// Use alpha channel as mask
+		// Alpha-blend the crop onto the white canvas
 		channels := gocv.Split(crop)
-		alpha := channels[3]
-		bgr := gocv.NewMat()
-		gocv.Merge([]gocv.Mat{channels[0], channels[1], channels[2]}, &bgr)
-		bgr.CopyToWithMask(&roi, alpha)
-		for _, ch := range channels {
-			ch.Close()
+		defer func() {
+			for _, ch := range channels {
+				ch.Close()
+			}
+		}()
+
+		// Convert alpha to float32 normalized to [0, 1]
+		alphaF := gocv.NewMat()
+		defer alphaF.Close()
+		channels[3].ConvertTo(&alphaF, gocv.MatTypeCV32F)
+		alphaF.DivideFloat(255.0)
+
+		// Convert each BGR channel and the ROI to float32 for blending
+		roiChannels := gocv.Split(roi)
+		defer func() {
+			for _, ch := range roiChannels {
+				ch.Close()
+			}
+		}()
+
+		for i := 0; i < 3; i++ {
+			srcF := gocv.NewMat()
+			dstF := gocv.NewMat()
+			channels[i].ConvertTo(&srcF, gocv.MatTypeCV32F)
+			roiChannels[i].ConvertTo(&dstF, gocv.MatTypeCV32F)
+
+			// result = src * alpha + dst * (1 - alpha)
+			onesMat := gocv.NewMatWithSizeFromScalar(gocv.NewScalar(1, 0, 0, 0), alphaF.Rows(), alphaF.Cols(), gocv.MatTypeCV32FC1)
+			invAlpha := gocv.NewMat()
+			gocv.Subtract(onesMat, alphaF, &invAlpha)
+			onesMat.Close()
+
+			srcWeighted := gocv.NewMat()
+			dstWeighted := gocv.NewMat()
+			gocv.Multiply(srcF, alphaF, &srcWeighted)
+			gocv.Multiply(dstF, invAlpha, &dstWeighted)
+
+			blended := gocv.NewMat()
+			gocv.Add(srcWeighted, dstWeighted, &blended)
+
+			// Convert back to uint8 and write into the ROI channel
+			blended.ConvertTo(&roiChannels[i], gocv.MatTypeCV8U)
+
+			srcF.Close()
+			dstF.Close()
+			invAlpha.Close()
+			srcWeighted.Close()
+			dstWeighted.Close()
+			blended.Close()
 		}
-		bgr.Close()
+
+		// Merge blended channels back into the ROI
+		gocv.Merge(roiChannels, &roi)
 	} else {
 		// 3-channel: copy entire contour region directly onto canvas
 		crop.CopyTo(&roi)
