@@ -1,4 +1,4 @@
-# image_processing
+# Image Processing
 
 ## Models That can be Used
 Here are the download links to the models used:
