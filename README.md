@@ -1,6 +1,6 @@
 # Image Processing
 
-## Models That can be Used
+## Models
 Here are the download links to the models used:
 
 U2net: https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx
