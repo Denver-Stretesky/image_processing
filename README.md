@@ -8,9 +8,12 @@ U2net: https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx
 ISnet: https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx
 
 Birefnet: model is too large to practically use
+
+place the model in models
 ## Notes
 Used through the command line at the moment. There still needs to be cleanup of the code before it is ready to be integrated
-
+Use: for f in data/input-images/*; do go run cmd/main.go "$f"; done
+This loops through all images in input-images
 ## Steps
 ### File Validation
 Determine if the input file is a valid file type. Then determine how many channels/what the channels are. This information will be used now to determine if background removal is necessary or if the image is cmyk. (nothing is done with cmyk yet but it needs a special conversion so the colours look better)
